@@ -1,21 +1,67 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:msport/auth/auth_service.dart';
 import 'package:msport/widget/ForG.dart';
 import 'package:msport/widget/mybutton.dart';
 import 'package:msport/widget/text_field.dart';
 
-class Loginpage extends StatelessWidget {
+class Loginpage extends StatefulWidget {
   const Loginpage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    TextEditingController phonenunberController = TextEditingController();
-    TextEditingController passwordController = TextEditingController();
+  State<Loginpage> createState() => _LoginpageState();
+}
 
-    void nextHomePage(){
-      
+class _LoginpageState extends State<Loginpage> {
+  @override
+  Widget build(BuildContext context) {
+    TextEditingController emailController = TextEditingController();
+    TextEditingController passwordController = TextEditingController();
+    AuthService auth = AuthService();
+    bool isLoading = false;
+    void nextHomePage() async {
+  final email = emailController.text.trim();
+  final password = passwordController.text.trim();
+
+  if (email.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Email không được để trống!")),
+    );
+    return;
+  } else if (password.isEmpty || password.length < 6) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Mật khẩu phải từ 6 ký tự trở lên!")),
+    );
+    return;
+  }
+
+  setState(() {
+    isLoading = true;
+  });
+
+  try {
+    final response = await auth.loginWithEmail(email, password);
+
+    if (response.user != null) {
+      context.go("/home");
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Đăng nhập thất bại. Vui lòng kiểm tra lại!")),
+      );
     }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Lỗi: ${e.toString()}")),
+    );
+  } finally {
+    setState(() {
+      isLoading = false;
+    });
+  }
+}
+
+
     return Scaffold(
       body: Stack(
         children: [
@@ -45,7 +91,7 @@ class Loginpage extends StatelessWidget {
                       ),
                     ),
                     SizedBox(height: 30,),
-                    MyTextField(title: "email",w: 30,controller: phonenunberController,),
+                    MyTextField(title: "email",w: 30,controller: emailController,),
                     SizedBox(height: 20,),
                     MyTextField(title: "password",w: 30,controller: passwordController,),
                     SizedBox(height: 10,),
@@ -71,7 +117,9 @@ class Loginpage extends StatelessWidget {
                       )
                     ),
                     SizedBox(height: 10,),
-                    MyButton(h: 60, w: 184, content: "Đăng Nhập",onTap: nextHomePage,),
+                    isLoading
+                    ?CircularProgressIndicator()
+                    :MyButton(h: 60, w: 184, content: "Đăng Nhập",onTap: nextHomePage,),
                     SizedBox(height: 10,),
                     Text("login with:",style: TextStyle(color: Colors.grey),),
                     SizedBox(height: 10,),
