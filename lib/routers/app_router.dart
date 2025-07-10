@@ -1,5 +1,6 @@
 // lib/router/app_router.dart
 import 'package:go_router/go_router.dart';
+import 'package:msport/model/user.dart';
 import 'package:msport/pages/HomePage.dart';
 import 'package:msport/pages/LoginPage.dart';
 import 'package:msport/pages/StartPage.dart';
@@ -35,7 +36,13 @@ GoRouter appRouter({required bool isFirstLaunch}) {
         path: '/register',
         builder: (context, state) => const RegisterPage(),
       ),
-      GoRoute(path: '/home', builder: (context, state) => HomePage()),
+      GoRoute(
+        path: '/home',
+        builder: (context, state) {
+          final userData = state.extra as User1?;
+          return HomePage(user: userData);
+        },
+      ),
     ],
   );
 }
