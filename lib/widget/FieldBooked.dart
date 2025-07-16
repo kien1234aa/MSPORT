@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:msport/model/sport_field.dart';
 
 class FieldBookedCard extends StatelessWidget {
-  final SportField field;
+  final SportsField field;
   final String bookingStatus;
   final VoidCallback onCancel;
 
@@ -34,14 +34,14 @@ class FieldBookedCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.grey[300],
                 borderRadius: BorderRadius.circular(12),
-                image: field.imgURL.isNotEmpty
+                image: field.imgUrl.isNotEmpty
                     ? DecorationImage(
-                        image: NetworkImage(field.imgURL),
+                        image: NetworkImage(field.imgUrl),
                         fit: BoxFit.cover,
                       )
                     : null,
               ),
-              child: field.imgURL.isEmpty
+              child: field.imgUrl.isEmpty
                   ? const Icon(Icons.image, size: 50, color: Colors.grey)
                   : null,
             ),

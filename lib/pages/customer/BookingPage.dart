@@ -25,7 +25,7 @@ class _BookingPageState extends State<BookingPage> {
   List<String> provinces = [];
   bool isLoading = true;
   String? errorMessage;
-  List<SportField> sportFields = [];
+  List<SportsField> sportFields = [];
 
   String encodeSpacesOnly(String input) {
     return Uri.encodeComponent(input);
@@ -54,7 +54,7 @@ class _BookingPageState extends State<BookingPage> {
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         setState(() {
-          sportFields = data.map((e) => SportField.fromJson(e)).toList();
+          sportFields = data.map((e) => SportsField.fromJson(e)).toList();
         });
       } else {
         print('Failed with status: ${response.statusCode}');
@@ -68,19 +68,22 @@ class _BookingPageState extends State<BookingPage> {
 
   Future<void> insertBooking(int index) async {
     final data = await DBUser().getCurrentUserData();
+
     if (data != null) {
+      final field = sportFields[index];
+
       Booking booking = Booking(
-        userId: data['id'], // Assuming userId is a string
-        fieldId: sportFields[index].id,
-        timeSlotId: index, // Assuming time slot ID is the index for simplicity
-        date: DateTime.now(), // Assuming current date for booking
-        totalPrice: sportFields[index].pricePerHour,
+        userId: data['id'],
+        fieldId: field.id!,
+        date: DateTime.now(), // Ngày đặt sân
+        totalPrice: field.pricePerHour,
         status: "pending",
-        createdAt: DateTime.now(), // Assuming a fixed price for simplicity
+        createdAt: DateTime.now(),
       );
+
       await DBUser().createBooking(booking);
     } else {
-      print('loi');
+      throw Exception('Không tìm thấy thông tin người dùng');
     }
   }
 
@@ -210,11 +213,12 @@ class _BookingPageState extends State<BookingPage> {
                       onPressed: () async {
                         // Xử lý khi nhấn Có
                         Navigator.of(context).pop(true);
-                        await insertBooking(index);
+                        // await insertBooking(index);
                         if (sportFields[index].id != null) {
                           await DBUser().updateItemStatusToUnactive(
                             sportFields[index].id as int,
                           );
+                          await insertBooking(index);
                           setState(() {
                             sportFields.removeAt(index);
                           });
@@ -507,11 +511,11 @@ class _BookingPageState extends State<BookingPage> {
                                   color: Colors.blue.shade100,
                                   borderRadius: BorderRadius.circular(28),
                                 ),
-                                child: sportFields[index].imgURL != null
+                                child: sportFields[index].imgUrl != null
                                     ? ClipRRect(
                                         borderRadius: BorderRadius.circular(28),
                                         child: Image.network(
-                                          sportFields[index].imgURL,
+                                          sportFields[index].imgUrl,
                                           fit: BoxFit.cover,
                                           errorBuilder:
                                               (context, error, stackTrace) {

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:msport/database/db_user.dart';
 import 'package:msport/model/sport_field.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -20,13 +21,11 @@ class _CreateFieldDialogContentState extends State<CreateFieldDialogContent> {
 
   int selectedTypeField = 5;
   TimeOfDay selectedTime = TimeOfDay.now();
-
+  DBUser db = DBUser();
   String? selectedProvince;
   List<String> provinceList = [];
   bool isLoadingProvinces = true;
-
   final supabase = Supabase.instance.client;
-
   @override
   void initState() {
     super.initState();
@@ -53,35 +52,6 @@ class _CreateFieldDialogContentState extends State<CreateFieldDialogContent> {
       setState(() {
         isLoadingProvinces = false;
       });
-    }
-  }
-
-  // Create a new sport field
-  Future<String?> createSportField(SportField field) async {
-    final user = supabase.auth.currentUser;
-    if (user == null) return "Bạn chưa đăng nhập.";
-
-    final authUserId = user.id;
-
-    try {
-      final userResponse = await supabase
-          .from('users')
-          .select('id, role')
-          .eq('auth_id', authUserId)
-          .maybeSingle();
-
-      if (userResponse == null) return "Không tìm thấy người dùng.";
-      if (userResponse['role'] != 'owner') return "Bạn không có quyền tạo sân.";
-
-      final ownerId = userResponse['id'];
-      await supabase.from('sports_fields').insert({
-        ...field.toJson(),
-        'owner_id': ownerId,
-      });
-
-      return null;
-    } catch (e) {
-      return "Lỗi khi tạo sân: $e";
     }
   }
 
@@ -232,37 +202,40 @@ class _CreateFieldDialogContentState extends State<CreateFieldDialogContent> {
               controller: descriptionController,
             ),
             const SizedBox(height: 20),
-
             SizedBox(
               width: double.infinity,
               height: 45,
               child: ElevatedButton(
                 onPressed: () async {
-                  final newField = SportField(
-                    name: nameController.text.trim(),
-                    location: selectedProvince ?? '',
-                    description: descriptionController.text.trim(),
-                    pricePerHour:
-                        double.tryParse(priceController.text.trim()) ?? 0.0,
-                    ownerId: 0,
-                    status: 'active',
-                    type: selectedTypeField,
-                    imgURL: '',
-                    time:
-                        '${selectedTime.hour}:${selectedTime.minute.toString().padLeft(2, '0')}',
-                  );
+                  try {
+                    final ownerId = await db.getCurrentUserId();
 
-                  final error = await createSportField(newField);
-                  if (error != null) {
+                    final newField = SportsField(
+                      name: nameController.text.trim(),
+                      location: selectedProvince ?? '',
+                      description: descriptionController.text.trim(),
+                      pricePerHour:
+                          double.tryParse(priceController.text.trim()) ?? 0.0,
+                      ownerId: ownerId,
+                      status: 'active',
+                      type: selectedTypeField,
+                      imgUrl: '',
+                      time:
+                          '${selectedTime.hour}:${selectedTime.minute.toString().padLeft(2, '0')}',
+                    );
+
+                    await db.createSport(newField);
+
+                    // Gọi callback để load lại danh sách sân
+                    widget.onFieldCreated?.call();
+
+                    // Đóng dialog
+                    Navigator.pop(context);
+                  } catch (e) {
+                    // Có thể hiển thị lỗi bằng SnackBar
                     ScaffoldMessenger.of(
                       context,
-                    ).showSnackBar(SnackBar(content: Text(error)));
-                  } else {
-                    Navigator.of(context).pop();
-                    widget.onFieldCreated?.call();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Tạo sân thành công!")),
-                    );
+                    ).showSnackBar(SnackBar(content: Text("Lỗi tạo sân: $e")));
                   }
                 },
                 style: ElevatedButton.styleFrom(

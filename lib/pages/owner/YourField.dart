@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:msport/database/db_user.dart';
 import 'package:msport/model/sport_field.dart';
 import 'package:msport/widget/CreateFieldDialogContent.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class YourFieldsPage extends StatefulWidget {
   const YourFieldsPage({super.key});
@@ -11,49 +11,7 @@ class YourFieldsPage extends StatefulWidget {
 }
 
 class _YourFieldsPageState extends State<YourFieldsPage> {
-  Future<List<SportField>> fetchAllSportFields() async {
-    final supabase = Supabase.instance.client;
-    final authUser = supabase.auth.currentUser;
-
-    if (authUser == null) {
-      print("Chưa đăng nhập");
-      return [];
-    }
-
-    try {
-      final user = await supabase
-          .from('users')
-          .select('id')
-          .eq('auth_id', authUser.id)
-          .eq('role', 'owner')
-          .maybeSingle();
-
-      if (user == null) {
-        print("Không phải chủ sân");
-        return [];
-      }
-
-      final ownerId = user['id'];
-
-      final data = await supabase
-          .from('sports_fields')
-          .select('*')
-          .eq('owner_id', ownerId)
-          .order('id');
-
-      if (data is List) {
-        return data
-            .map((e) => SportField.fromJson(e as Map<String, dynamic>))
-            .toList();
-      } else {
-        print("Dữ liệu trả về không phải là danh sách");
-        return [];
-      }
-    } catch (e) {
-      print("Lỗi khi fetch dữ liệu: $e");
-      return [];
-    }
-  }
+  DBUser db = DBUser();
 
   void showCreateFieldDialog(BuildContext context) {
     showDialog(
@@ -73,10 +31,16 @@ class _YourFieldsPageState extends State<YourFieldsPage> {
     );
   }
 
+  /// Hàm lấy danh sách sân của user đang đăng nhập
+  Future<List<SportsField>> getOwnerFields() async {
+    final userId = await db.getCurrentUserId();
+    return await db.getAllField(userId);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<SportField>>(
-      future: fetchAllSportFields(),
+    return FutureBuilder<List<SportsField>>(
+      future: getOwnerFields(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -151,12 +115,17 @@ class _YourFieldsPageState extends State<YourFieldsPage> {
                                 decoration: BoxDecoration(
                                   color: Colors.grey.shade300,
                                   borderRadius: BorderRadius.circular(8),
-                                  image: field.imgURL.isNotEmpty
+                                  image: field.imgUrl.isNotEmpty
                                       ? DecorationImage(
-                                          image: NetworkImage(field.imgURL),
+                                          image: NetworkImage(field.imgUrl),
                                           fit: BoxFit.cover,
                                         )
-                                      : null,
+                                      : DecorationImage(
+                                          image: NetworkImage(
+                                            'https://th.bing.com/th/id/R.558d9ec0b82b770e0066afaa1c95d530?rik=kdNRHXhgmfNspQ&pid=ImgRaw&r=0',
+                                          ),
+                                          fit: BoxFit.cover,
+                                        ),
                                 ),
                               ),
                               const SizedBox(width: 12),

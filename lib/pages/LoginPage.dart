@@ -6,6 +6,7 @@ import 'package:msport/model/user.dart';
 import 'package:msport/widget/ForG.dart';
 import 'package:msport/widget/mybutton.dart';
 import 'package:msport/widget/text_field.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Loginpage extends StatefulWidget {
@@ -22,6 +23,13 @@ class _LoginpageState extends State<Loginpage> {
     TextEditingController passwordController = TextEditingController();
     AuthService auth = AuthService();
     bool isLoading = false;
+    void signInWithGoogle() async {
+      await Supabase.instance.client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'io.supabase.flutter://login-callback',
+      );
+    }
+
     void nextHomePage() async {
       final email = emailController.text.trim();
       final password = passwordController.text.trim();
@@ -152,7 +160,10 @@ class _LoginpageState extends State<Loginpage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         SizedBox(width: 20),
-                        ForG(img: "assets/icons/facebook.png"),
+                        ForG(
+                          img: "assets/icons/facebook.png",
+                          onTap: signInWithGoogle,
+                        ),
                         ForG(img: "assets/icons/google.png"),
                         SizedBox(height: 20),
                       ],

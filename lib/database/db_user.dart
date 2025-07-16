@@ -1,4 +1,7 @@
+import 'package:flutter/material.dart';
+import 'package:msport/model/BookingDetail.dart';
 import 'package:msport/model/bookings.dart';
+import 'package:msport/model/sport_field.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:msport/model/user.dart';
 
@@ -23,29 +26,6 @@ class DBUser {
   }
 
   // CREATE - bookings
-  Future<Booking> createBooking(Booking booking) async {
-    try {
-      print("📤 Sending booking to Supabase: ${booking.toJson()}");
-
-      final response = await _supabase
-          .from('bookings')
-          .insert(booking.toJson())
-          .select()
-          .single();
-
-      print("✅ Booking created response: $response");
-
-      return Booking.fromJson(response);
-    } catch (e) {
-      print('❌ Error creating booking: $e');
-
-      if (e is PostgrestException) {
-        print('Supabase Error Details: ${e.message}');
-      }
-
-      throw Exception('Failed to create booking');
-    }
-  }
 
   // READ - Get user by ID
   Future<Map<String, dynamic>?> getCurrentUserData() async {
@@ -155,5 +135,90 @@ class DBUser {
     } else {
       throw Exception('Không thể lấy danh sách đặt sân theo owner');
     }
+  }
+
+  // Tạo sân
+  Future<void> createSport(SportsField field) async {
+    final supabase = Supabase.instance.client;
+
+    try {
+      await supabase.from('sports_fields').insert(field.toJson());
+    } catch (e) {
+      if (e is PostgrestException) {
+        debugPrint("Supabase Error: ${e.message}");
+        throw Exception(e.message); // Hoặc trả về lỗi tùy ý
+      } else {
+        debugPrint("Unexpected Error: $e");
+        throw Exception("Lỗi không xác định");
+      }
+    }
+  }
+
+  //Lấy tất cả các sân dựa trên id owner
+  Future<List<SportsField>> getAllField(int idOwner) async {
+    final response = await _supabase
+        .from("sports_fields")
+        .select()
+        .eq("owner_id", idOwner);
+    if (response is List) {
+      return response.map((json) => SportsField.fromJson(json)).toList();
+    } else {
+      throw Exception('Lỗi khi lấy danh sách sân');
+    }
+  }
+
+  //Lấy auth_id của user
+  String getCurrentUserAuthId() {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      throw Exception('Chưa đăng nhập');
+    }
+    return user.id; // Đây là auth_id
+  }
+
+  //lấy id của user dựa vào auth id
+  Future<int> getCurrentUserId() async {
+    final supabase = Supabase.instance.client;
+    final authId = getCurrentUserAuthId();
+
+    final response = await supabase
+        .from('users')
+        .select('id')
+        .eq('auth_id', authId)
+        .single();
+
+    return response['id'];
+  }
+
+  Future<void> createBooking(Booking booking) async {
+    final supabase = Supabase.instance.client;
+
+    try {
+      await supabase.from('bookings').insert(booking.toJson());
+    } catch (e) {
+      if (e is PostgrestException) {
+        debugPrint("Supabase Error: ${e.message}");
+        throw Exception(e.message);
+      } else {
+        debugPrint("Unexpected Error: $e");
+        throw Exception("Lỗi không xác định khi đặt sân");
+      }
+    }
+  }
+
+  Future<List<SportsField>> getFieldBooked(int ownerId) async {
+    final supabase = Supabase.instance.client;
+
+    final response = await supabase.rpc(
+      'get_field_booked',
+      params: {'owner_id_input': ownerId},
+    );
+
+    if (response == null) {
+      throw Exception("Không có dữ liệu trả về");
+    }
+    return (response as List)
+        .map((e) => SportsField.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 }

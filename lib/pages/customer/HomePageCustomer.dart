@@ -19,7 +19,7 @@ class HomePageCustomer extends StatefulWidget {
 class _HomePageCustomerState extends State<HomePageCustomer> {
   int _selectedBottomIndex = 2;
   AuthService authService = AuthService();
-  SportField? _selectedSportField;
+  SportsField? _selectedSportField;
   Key bookedPageKey = UniqueKey();
   Key bookingPageKey = UniqueKey();
   @override

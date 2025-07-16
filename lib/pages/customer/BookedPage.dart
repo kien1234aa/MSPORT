@@ -82,10 +82,10 @@ class _BookedPageState extends State<BookedPage> {
                   final field = booking['sports_fields'];
 
                   return FieldBookedCard(
-                    field: SportField(
+                    field: SportsField(
                       id: field['id'],
                       name: field['name'] ?? '',
-                      imgURL: field['imgURL'] ?? '',
+                      imgUrl: field['imgURL'] ?? '',
                       time: booking['time'] ?? '',
                       location: field['location'] ?? '',
                       ownerId: field['owner_id'],
