@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/io_client.dart';
 import 'package:msport/database/db_user.dart';
+import 'package:msport/model/Notification.dart';
 import 'package:msport/model/bookings.dart';
 
 import 'package:msport/model/sport_field.dart';
@@ -26,6 +27,7 @@ class _BookingPageState extends State<BookingPage> {
   bool isLoading = true;
   String? errorMessage;
   List<SportsField> sportFields = [];
+  late Future<String> nameUserFuture;
 
   String encodeSpacesOnly(String input) {
     return Uri.encodeComponent(input);
@@ -88,9 +90,11 @@ class _BookingPageState extends State<BookingPage> {
   }
 
   @override
+  @override
   void initState() {
     super.initState();
     fetchProvinces();
+    nameUserFuture = DBUser().getNameCurrent();
   }
 
   Future<void> fetchProvinces() async {
@@ -211,19 +215,24 @@ class _BookingPageState extends State<BookingPage> {
                   children: [
                     ElevatedButton(
                       onPressed: () async {
-                        // Xử lý khi nhấn Có
                         Navigator.of(context).pop(true);
-                        // await insertBooking(index);
-                        if (sportFields[index].id != null) {
-                          await DBUser().updateItemStatusToUnactive(
-                            sportFields[index].id as int,
+
+                        final field = sportFields[index];
+
+                        if (field.id != null) {
+                          await DBUser().updateItemStatusToUnactive(field.id!);
+
+                          await DBUser().bookFieldAndNotify(
+                            fieldId: field.id!,
+                            pricePerHour: field.pricePerHour,
+                            time: field.time,
                           );
-                          await insertBooking(index);
+
                           setState(() {
                             sportFields.removeAt(index);
                           });
                         } else {
-                          print('Error: sport field id is null');
+                          print('Error: field.id is null');
                         }
                       },
                       style: ElevatedButton.styleFrom(
